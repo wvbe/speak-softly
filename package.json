@@ -1,0 +1,21 @@
+{
+  "name": "speak-softly",
+  "version": "1.0.0",
+  "description": "",
+  "main": "SoftSpoken.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wvbe/speak-softly.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wvbe/speak-softly/issues"
+  },
+  "homepage": "https://github.com/wvbe/speak-softly#readme",
+  "dependencies": {
+    "chalk": "^1.1.1",
+    "promise": "^7.0.4",
+    "word-wrap": "^1.1.0"
+  }
+}
