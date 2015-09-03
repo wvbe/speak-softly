@@ -17,7 +17,7 @@ softSpoken.log('End of bunny');
 
 - __Methods:__ log, notice, error, debug, caption, success, property, properties
 - __Options:__ log, notice, error, debug, caption, success, propertyKey, propertyValue
-- __Values:__ Zero, one or two `chalk` colors; black, red, green, yellow, blue, magenta, cyan, white, gray, grey, bgBlack, bgRed, bgGreen, bgYellow, bgBlue, bgMagenta, bgCyan, bgWhite, dim, rainbow, zebra, america, random, reset
+- __Values:__ Zero, one or two `chalk` colors; reset, bold, dim, italic, underline, inverse, hidden, strikethrough, black, red, green, yellow, blue, magenta, cyan, white, gray, grey, bgBlack, bgRed, bgGreen, bgYellow, bgBlue, bgMagenta, bgCyan, bgWhite
 
 ## License
 Copyright (c) 2015 Wybe Minnebo
