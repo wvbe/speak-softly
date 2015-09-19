@@ -1,4 +1,5 @@
 var os = require('os'),
+	util = require('util'),
 
 	wutangUtil = require('./util');
 
@@ -76,17 +77,26 @@ Response.prototype.error = function (data) {
  * @param data
  */
 Response.prototype.debug = function (data) {
-	return this._log(data, this.colors.debug, this.indentation);
+	return this._log((data && typeof data === 'object') ? util.inspect(data, {depth: 3, colors: false}) : data, this.colors.debug, this.indentation);
 };
 
 Response.prototype.property = function (key, value, keySize) {
-	console.log(
-		wutangUtil.indentString(
-			wutangUtil.formatString(wutangUtil.padString(key, keySize), this.colors.propertyKey)
-			+ '    '
-			+ wutangUtil.formatString(value, this.colors.propertyValue), this.indentation
-		)
-	);
+	var keyString = wutangUtil.indentString(
+			wutangUtil.formatString(wutangUtil.padString(key, keySize), this.colors.propertyKey),
+			this.indentation
+	),
+		seperatorString = '  ',
+		valueString = wutangUtil.indentString(
+				wutangUtil.formatString(value, this.colors.propertyValue),
+				seperatorString,
+				wutangUtil.getTerminalWidth() - 2 * this.indentation.length - seperatorString.length - keySize
+			)
+			.split('\n')
+			.map(function (line, i, lines) {
+				return (i === 0 ? keyString : wutangUtil.fillString(keySize + this.indentation.length + 1))
+					+ line;
+			}.bind(this)).join('\n');
+	console.log(valueString);
 };
 
 Response.prototype.properties = function (obj) {

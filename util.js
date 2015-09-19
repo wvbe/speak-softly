@@ -1,21 +1,18 @@
 var os = require('os'),
-	wordwrap = require('word-wrap'),
-	chalk = require('chalk'),
-	Promise = require('promise');
+	wrapAnsi = require('wrap-ansi'),
+	chalk = require('chalk');
 
 
-function indentString(string, indentation) {
+function indentString(string, indentation, screenWidth) {
 	if(indentation === undefined)
 		indentation = '    ';
 
-	var lineWidth = getTerminalWidth() - 2 * indentation.length;
+	if(!screenWidth)
+		screenWidth = getTerminalWidth();
 
-	return wordwrap(string, {
-		indent: '',
-		width: lineWidth,
-		cut: lineWidth/3,
-		newline: os.EOL
-	})
+	var lineWidth = screenWidth - 2 * indentation.length;
+
+	return wrapAnsi(string, lineWidth)
 		.split(os.EOL)
 		.map(function (line) {
 			return indentation + line;
@@ -23,12 +20,12 @@ function indentString(string, indentation) {
 		.join(os.EOL);
 }
 
-function fill (length, char) {
+function fillString (length, char) {
 	return (new Array(length).join(char || ' '));
 }
 
 function padString ( str, length, char ) {
-	return str + fill(Math.max((length || 0) - (str.length || 0) + 1, 0), char || ' ');
+	return str + fillString(Math.max((length || 0) - (str.length || 0) + 1, 0), char || ' ');
 }
 
 function formatString(string, formatting) {
@@ -47,5 +44,6 @@ module.exports = {
 	formatString: formatString,
 	indentString: indentString,
 	padString: padString,
+	fillString: fillString,
 	getTerminalWidth: getTerminalWidth
 };
