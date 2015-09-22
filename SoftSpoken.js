@@ -3,28 +3,55 @@ var os = require('os'),
 
 	wutangUtil = require('./util');
 
-var DEFAULT_FORMATTING_OPTIONS = {
-	log: ['reset'],
-	success: ['bold'],
-	caption: ['underline'],
-	notice: ['yellow'],
-	error: ['red'],
-	debug: ['dim'],
-	propertyKey: ['dim'],
-	propertyValue: ['reset']
-};
+function dotSpinnerFactory (message) {
+	var l = (wutangUtil.getTerminalWidth() - 2 * this.indentation.length - message.length),
+		i = 0;
 
-function Response (colors) {
+	return function () {
+		return message + new Array(++i % l).join('.');
+	}
+}
+
+function spriteSpinnerFactory (message) {
+	var chars = '▖▘▝▗'.split(''),
+		i = 0;
+
+	return function () {
+		return message + ' ' + chars[(++i - 1) % chars.length];
+	}
+}
+
+var DEFAULT_COLORS = {
+		log: ['reset'],
+		success: ['bold'],
+		caption: ['underline'],
+		notice: ['yellow'],
+		error: ['red'],
+		debug: ['dim'],
+		propertyKey: ['dim'],
+		propertyValue: ['reset'],
+		spinnerSpinning: ['dim'],
+		spinnerDone: ['dim']
+	},
+	DEFAULT_CONFIG = {
+		indentation: '    ',
+		spinnerFactory: dotSpinnerFactory
+	};
+
+function Response (colors, config) {
 	this.colors = colors
-		? Object.keys(DEFAULT_FORMATTING_OPTIONS).reduce(function (clrs, name) {
+		? Object.keys(DEFAULT_COLORS).reduce(function (clrs, name) {
 			clrs[name] = colors[name] === undefined
-				? DEFAULT_FORMATTING_OPTIONS[name]
+				? DEFAULT_COLORS[name]
 				: (Array.isArray(colors[name])  ? colors[name] : [colors[name]]);
 			return clrs;
 		}, {})
-		: DEFAULT_FORMATTING_OPTIONS;
+		: DEFAULT_COLORS;
 
-	this.indentation = '    ';
+	config = config || {};
+	this.indentation = config.indentation || DEFAULT_CONFIG.indentation;
+	this.spinnerFactory = (config.spinnerFactory || DEFAULT_CONFIG.spinnerFactory).bind(this);
+	this._spinnerDestroyers = [];
 }
 
 Response.prototype._log = function (string, formattingOptions, indentation, skipLineBreak) {
@@ -118,27 +145,38 @@ Response.prototype.properties = function (obj) {
 	}
 };
 
+
+Response.prototype.destroyAllSpinners = function (message) {
+	this._spinnerDestroyers.forEach(function (fn) {
+		fn();
+	})
+}
 Response.prototype.spinner = function (message) {
-	var l = (wutangUtil.getTerminalWidth() - 2 * this.indentation.length - message.length),
-		i = 0,
-		startTime = new Date().getTime(),
+	var startTime = new Date().getTime(),
+		formatter = this.spinnerFactory(message),
 		interval = setInterval(function() {
 			process.stdout.clearLine();
 			process.stdout.cursorTo(0);
 
-			this._log(message + new Array((++i%l) + 1).join('.'), this.colors.log, this.indentation, true);
-		}.bind(this), 200);
+			this._log(formatter(), this.colors.spinnerSpinning, this.indentation, true);
+		}.bind(this), 200),
+		destroySpinner = function () {
+			var ms = new Date().getTime() - startTime;
 
-	return function () {
-		var ms = new Date().getTime() - startTime;
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
 
-		process.stdout.clearLine();
-		process.stdout.cursorTo(0);
+			this._log(message + ' (' + ms + 'ms)', this.colors.spinnerDone, this.indentation);
 
-		this._log(message + ' (' + ms + 'ms)', this.colors.log, this.indentation);
+			clearInterval(interval);
+			this._spinnerDestroyers.splice(this._spinnerDestroyers.indexOf(destroySpinner), 1);
+		}.bind(this);
 
-		clearInterval(interval);
-	}.bind(this);
+	this._spinnerDestroyers.push(destroySpinner);
+
+	this._log(formatter(), this.colors.spinnerSpinning, this.indentation, true);
+
+	return destroySpinner;
 }
 
 module.exports = Response;
