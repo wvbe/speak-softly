@@ -27,8 +27,8 @@ function Response (colors) {
 	this.indentation = '    ';
 }
 
-Response.prototype._log = function (string, formattingOptions, indentation) {
-	console.log(wutangUtil.indentString(wutangUtil.formatString(string, formattingOptions), indentation));
+Response.prototype._log = function (string, formattingOptions, indentation, skipLineBreak) {
+	process.stdout.write(wutangUtil.indentString(wutangUtil.formatString(string, formattingOptions), indentation) + (skipLineBreak ? '' : os.EOL));
 };
 
 /**
@@ -117,5 +117,28 @@ Response.prototype.properties = function (obj) {
 		}.bind(this));
 	}
 };
+
+Response.prototype.spinner = function (message) {
+	var l = (wutangUtil.getTerminalWidth() - 2 * this.indentation.length - message.length),
+		i = 0,
+		startTime = new Date().getTime(),
+		interval = setInterval(function() {
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
+
+			this._log(message + new Array((++i%l) + 1).join('.'), this.colors.log, this.indentation, true);
+		}.bind(this), 200);
+
+	return function () {
+		var ms = new Date().getTime() - startTime;
+
+		process.stdout.clearLine();
+		process.stdout.cursorTo(0);
+
+		this._log(message + ' (' + ms + 'ms)', this.colors.log, this.indentation);
+
+		clearInterval(interval);
+	}.bind(this);
+}
 
 module.exports = Response;
