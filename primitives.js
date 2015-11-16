@@ -31,7 +31,7 @@ function padString ( str, length, char ) {
 function formatString(string, formatting) {
 	if(!formatting)
 		return string;
-	return (formatting).reduce(function (c, formattingOption) {
+	return (formatting || []).reduce(function (c, formattingOption) {
 		return c[formattingOption];
 	}, chalk)(string);
 }

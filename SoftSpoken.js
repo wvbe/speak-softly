@@ -1,10 +1,12 @@
-var os = require('os'),
+'use strict';
+
+let os = require('os'),
 	util = require('util'),
 
-	wutangUtil = require('./util');
+	primitives = require('./primitives');
 
 function dotSpinnerFactory (message) {
-	var l = (wutangUtil.getTerminalWidth() - 2 * this.indentation.length - message.length),
+	let l = (primitives.getTerminalWidth() - 2 * this.indentation.length - message.length),
 		i = 0;
 
 	return function () {
@@ -13,7 +15,7 @@ function dotSpinnerFactory (message) {
 }
 
 function spriteSpinnerFactory (message) {
-	var chars = '▖▘▝▗'.split(''),
+	let chars = '▖▘▝▗'.split(''),
 		i = 0;
 
 	return function () {
@@ -21,7 +23,7 @@ function spriteSpinnerFactory (message) {
 	}
 }
 
-var DEFAULT_COLORS = {
+let DEFAULT_COLORS = {
 		log: ['reset'],
 		success: ['bold'],
 		caption: ['underline'],
@@ -35,148 +37,154 @@ var DEFAULT_COLORS = {
 	},
 	DEFAULT_CONFIG = {
 		indentation: '    ',
-		spinnerFactory: dotSpinnerFactory
+		spinnerFactory: spriteSpinnerFactory,
+		spinnerInterval: 200
 	};
 
-function Response (colors, config) {
-	this.colors = colors
-		? Object.keys(DEFAULT_COLORS).reduce(function (clrs, name) {
-			clrs[name] = colors[name] === undefined
-				? DEFAULT_COLORS[name]
-				: (Array.isArray(colors[name])  ? colors[name] : [colors[name]]);
-			return clrs;
-		}, {})
-		: DEFAULT_COLORS;
+let LOG = Symbol(),
+	DESTROYERS = Symbol();
 
-	config = config || {};
-	this.indentation = config.indentation || DEFAULT_CONFIG.indentation;
-	this.spinnerFactory = (config.spinnerFactory || DEFAULT_CONFIG.spinnerFactory).bind(this);
-	this._spinnerDestroyers = [];
-}
+class Response {
+	constructor (colors, config) {
+		this.colors = Object.assign(DEFAULT_COLORS, colors);
 
-Response.prototype._log = function (string, formattingOptions, indentation, skipLineBreak) {
-	process.stdout.write(wutangUtil.indentString(wutangUtil.formatString(string, formattingOptions), indentation) + (skipLineBreak ? '' : os.EOL));
-};
+		Object.keys(this.colors).forEach(name => {
+			if (!this.colors[name])
+				this.colors[name] = ['dim'];
+			else if (!Array.isArray(this.colors[name]))
+				this.colors[name] = [this.colors[name]];
+		});
 
-/**
- * A description of proceedings relevant to the task/whatever
- * @param data
- */
-Response.prototype.log = function (data) {
-	return this._log(data, this.colors.log, this.indentation);
-};
+		Object.assign(this, DEFAULT_CONFIG, config);
+		this[DESTROYERS] = [];
+	}
+	
+	[LOG] (string, formattingOptions, indentation, skipLineBreak) {
+		process.stdout.write(primitives.indentString(primitives.formatString(string, formattingOptions), indentation) + (skipLineBreak ? '' : os.EOL));
+	}
 
-/**
- * Indicates that something the user wanted happened.
- * @param data
- */
-Response.prototype.success = function (data) {
-	return this._log(data, this.colors.success, this.indentation);
-};
+	/**
+	 * A description of proceedings relevant to the task/whatever
+	 * @param data
+	 */
+	log (data) {
+		return this[LOG](data, this.colors.log, this.indentation);
+	}
 
-/**
- * Indicates the app is working on a concern/task/whatever.
- * @param data
- */
-Response.prototype.caption = function (data) {
-	console.log('');
-	return this._log(data, this.colors.caption);//,this.indentation);
-};
+	/**
+	 * Indicates that something the user wanted happened.
+	 * @param data
+	 */
+	success (data) {
+		return this[LOG](data, this.colors.success, this.indentation);
+	}
 
-/**
- * Something that is probably of interest (but not neccessarily bad), if not important, for the user; exceptions, search results, urgent stuff
- * @param data
- */
-Response.prototype.notice = function (data) {
-	return this._log(data, this.colors.notice, this.indentation);
-};
+	/**
+	 * Indicates the app is working on a concern/task/whatever.
+	 * @param data
+	 */
+	caption (data) {
+		console.log('');
+		return this[LOG](data, this.colors.caption,this.indentation);
+	}
 
-/**
- * Something messed up
- * @param data
- */
-Response.prototype.error = function (data) {
-	return this._log(data, this.colors.error, this.indentation);
-};
+	/**
+	 * Something that is probably of interest (but not neccessarily bad), if not important, for the user; exceptions, search results, urgent stuff
+	 * @param data
+	 */
+	notice (data) {
+		return this[LOG](data, this.colors.notice, this.indentation);
+	}
 
-/**
- * Information that the user might not even care about at that time
- * @param data
- */
-Response.prototype.debug = function (data) {
-	return this._log((data && typeof data === 'object') ? util.inspect(data, {depth: 3, colors: false}) : data, this.colors.debug, this.indentation);
-};
+	/**
+	 * Something messed up
+	 * @param data
+	 */
+	error (data) {
+		return this[LOG](data, this.colors.error, this.indentation);
+	}
 
-Response.prototype.property = function (key, value, keySize) {
-	var keyString = wutangUtil.indentString(
-			wutangUtil.formatString(wutangUtil.padString(key, keySize), this.colors.propertyKey),
-			this.indentation
-	),
-		seperatorString = '  ',
-		valueString = wutangUtil.indentString(
-				wutangUtil.formatString(value, this.colors.propertyValue),
+	/**
+	 * Information that the user might not even care about at that time
+	 * @param data
+	 */
+	debug (data) {
+		return this[LOG]((data && typeof data === 'object')
+			? util.inspect(data, {depth: 3, colors: false})
+			: data, this.colors.debug, this.indentation);
+	}
+
+	property (key, value, keySize) {
+		let keyString = primitives.indentString(
+				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
+				this.indentation
+			),
+			seperatorString = '  ';
+
+		console.log(primitives.indentString(
+				primitives.formatString(value, this.colors.propertyValue),
 				seperatorString,
-				wutangUtil.getTerminalWidth() - 2 * this.indentation.length - seperatorString.length - keySize
+				primitives.getTerminalWidth() - 2 * this.indentation.length - seperatorString.length - keySize
 			)
 			.split('\n')
-			.map(function (line, i, lines) {
-				return (i === 0 ? keyString : wutangUtil.fillString(keySize + this.indentation.length + 1))
-					+ line;
-			}.bind(this)).join('\n');
-	console.log(valueString);
-};
-
-Response.prototype.properties = function (obj) {
-	var maxLength = 0;
-	if(Array.isArray(obj)) {
-		obj.forEach(function (k) {
-			maxLength = Math.max((k[0] || '').length, maxLength);
-		});
-		obj.forEach(function (k) {
-			this.property(k[0], k[1], maxLength);
-		}.bind(this));
-	} else {
-		Object.keys(obj).forEach(function (k) {
-			maxLength = Math.max(k.length, maxLength);
-		});
-		Object.keys(obj).forEach(function (k) {
-			this.property(k, obj[k], maxLength);
-		}.bind(this));
+			.map((line, i, lines) => (i === 0
+					? keyString
+					: primitives.fillString(keySize + this.indentation.length + 1)
+				) + line)
+			.join('\n'));
 	}
-};
 
+	properties (obj) {
+		let maxLength = 0;
+		if(Array.isArray(obj)) {
+			obj.forEach((k) => {
+				maxLength = Math.max((k[0] || '').length, maxLength);
+			});
+			obj.forEach(k => {
+				this.property(k[0], k[1], maxLength);
+			});
+		} else {
+			Object.keys(obj).forEach(k => {
+				maxLength = Math.max(k.length, maxLength);
+			});
+			Object.keys(obj).forEach(k => {
+				this.property(k, obj[k], maxLength);
+			});
+		}
+	}
 
-Response.prototype.destroyAllSpinners = function (message) {
-	this._spinnerDestroyers.forEach(function (fn) {
-		fn();
-	})
+	destroyAllSpinners (message) {
+		this[DESTROYERS].forEach(fn => fn());
+	}
+
+	spinner (message) {
+		let startTime = new Date().getTime(),
+			formatter = this.spinnerFactory(message).bind(this),
+			interval = setInterval(() => {
+				process.stdout.clearLine();
+				process.stdout.cursorTo(0);
+
+				this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+			}, this.spinnerInterval),
+			destroySpinner = () => {
+				let ms = new Date().getTime() - startTime;
+
+				process.stdout.clearLine();
+				process.stdout.cursorTo(0);
+
+				this[LOG](`${message} (${ms})`, this.colors.spinnerDone, this.indentation);
+
+				clearInterval(interval);
+				this[DESTROYERS].splice(this[DESTROYERS].indexOf(destroySpinner), 1);
+			};
+
+		this[DESTROYERS].push(destroySpinner);
+
+		this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+
+		return destroySpinner;
+	}
 }
-Response.prototype.spinner = function (message) {
-	var startTime = new Date().getTime(),
-		formatter = this.spinnerFactory(message),
-		interval = setInterval(function() {
-			process.stdout.clearLine();
-			process.stdout.cursorTo(0);
 
-			this._log(formatter(), this.colors.spinnerSpinning, this.indentation, true);
-		}.bind(this), 200),
-		destroySpinner = function () {
-			var ms = new Date().getTime() - startTime;
-
-			process.stdout.clearLine();
-			process.stdout.cursorTo(0);
-
-			this._log(message + ' (' + ms + 'ms)', this.colors.spinnerDone, this.indentation);
-
-			clearInterval(interval);
-			this._spinnerDestroyers.splice(this._spinnerDestroyers.indexOf(destroySpinner), 1);
-		}.bind(this);
-
-	this._spinnerDestroyers.push(destroySpinner);
-
-	this._log(formatter(), this.colors.spinnerSpinning, this.indentation, true);
-
-	return destroySpinner;
-}
 
 module.exports = Response;
