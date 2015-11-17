@@ -158,19 +158,24 @@ class Response {
 	}
 
 	spinner (message) {
-		let startTime = new Date().getTime(),
+		let hasClearLine = typeof process.stdout.clearLine === 'function',
+			startTime = new Date().getTime(),
 			formatter = this.spinnerFactory(message).bind(this),
-			interval = setInterval(() => {
-				process.stdout.clearLine();
-				process.stdout.cursorTo(0);
+			interval = hasClearLine
+				? setInterval(() => {
+					process.stdout.clearLine();
+					process.stdout.cursorTo(0);
 
-				this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
-			}, this.spinnerInterval),
+					this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+				}, this.spinnerInterval)
+				: null,
 			destroySpinner = () => {
 				let ms = new Date().getTime() - startTime;
 
-				process.stdout.clearLine();
-				process.stdout.cursorTo(0);
+				if (hasClearLine) {
+					process.stdout.clearLine();
+					process.stdout.cursorTo(0);
+				}
 
 				this[LOG](`${message} (${ms})`, this.colors.spinnerDone, this.indentation);
 
@@ -180,7 +185,8 @@ class Response {
 
 		this[DESTROYERS].push(destroySpinner);
 
-		this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+		if (hasClearLine)
+			this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
 
 		return destroySpinner;
 	}
