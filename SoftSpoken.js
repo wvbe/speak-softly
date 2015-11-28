@@ -114,7 +114,8 @@ class Response {
 			: data, this.colors.debug, this.indentation);
 	}
 
-	property (key, value, keySize) {
+	property (key, value, keySize, formattingName) {
+		keySize = keySize || 0;
 		let keyString = primitives.indentString(
 				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
 				this.indentation
@@ -122,7 +123,9 @@ class Response {
 			seperatorString = '  ';
 
 		console.log(primitives.indentString(
-				primitives.formatString(value, this.colors.propertyValue),
+				primitives.formatString(value, formattingName
+					? this.colors[formattingName]
+					: this.colors.propertyValue),
 				seperatorString,
 				primitives.getTerminalWidth() - 2 * this.indentation.length - seperatorString.length - keySize
 			)
@@ -134,30 +137,36 @@ class Response {
 			.join('\n'));
 	}
 
-	properties (obj) {
+	properties (obj, formattingName) {
 		let maxLength = 0;
 		if(Array.isArray(obj)) {
 			obj.forEach((k) => {
 				maxLength = Math.max((k[0] || '').length, maxLength);
 			});
 			obj.forEach(k => {
-				this.property(k[0], k[1], maxLength);
+				this.property(k[0], k[1], maxLength, k[2] || formattingName);
 			});
 		} else {
 			Object.keys(obj).forEach(k => {
 				maxLength = Math.max(k.length, maxLength);
 			});
 			Object.keys(obj).forEach(k => {
-				this.property(k, obj[k], maxLength);
+				this.property(k, obj[k], maxLength, formattingName);
 			});
 		}
+	}
+
+	break () {
+		return this[LOG]('', false, '');
 	}
 
 	destroyAllSpinners (message) {
 		this[DESTROYERS].forEach(fn => fn());
 	}
 
-	spinner (message) {
+	spinner (message, colorSpinning, colorDone) {
+		colorSpinning = colorSpinning || 'spinnerSpinning';
+		colorDone = colorDone || 'spinnerDone';
 		let hasClearLine = typeof process.stdout.clearLine === 'function',
 			startTime = new Date().getTime(),
 			formatter = this.spinnerFactory(message).bind(this),
@@ -166,7 +175,7 @@ class Response {
 					process.stdout.clearLine();
 					process.stdout.cursorTo(0);
 
-					this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+					this[LOG](formatter(), this.colors[colorSpinning], this.indentation, true);
 				}, this.spinnerInterval)
 				: null,
 			destroySpinner = () => {
@@ -177,7 +186,7 @@ class Response {
 					process.stdout.cursorTo(0);
 				}
 
-				this[LOG](`${message} (${ms})`, this.colors.spinnerDone, this.indentation);
+				this[LOG](`${message} (${ms})`, this.colors[colorDone], this.indentation);
 
 				clearInterval(interval);
 				this[DESTROYERS].splice(this[DESTROYERS].indexOf(destroySpinner), 1);
@@ -186,7 +195,7 @@ class Response {
 		this[DESTROYERS].push(destroySpinner);
 
 		if (hasClearLine)
-			this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+			this[LOG](formatter(), this.colors[colorSpinning], this.indentation, true);
 
 		return destroySpinner;
 	}
