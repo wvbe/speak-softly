@@ -19,7 +19,6 @@ function indentString(string, indentation, screenWidth) {
 		})
 		.join(os.EOL);
 }
-
 function fillString (length, char) {
 	return (new Array(length).join(char || ' '));
 }
@@ -41,6 +40,7 @@ function getTerminalWidth () {
 }
 
 module.exports = {
+	wrap: wrapAnsi,
 	formatString: formatString,
 	indentString: indentString,
 	padString: padString,

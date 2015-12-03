@@ -1,9 +1,11 @@
 'use strict';
 
-let os = require('os'),
-	util = require('util'),
+const os = require('os');
+const util = require('util');
 
-	primitives = require('./primitives');
+const Table = require('cli-table');
+
+const primitives = require('./primitives');
 
 function dotSpinnerFactory (message) {
 	let l = (primitives.getTerminalWidth() - 2 * this.indentation.length - message.length),
@@ -23,6 +25,26 @@ function spriteSpinnerFactory (message) {
 	}
 }
 
+const tableChars = {
+	compact: {
+		'top': '', 'top-mid': '', 'top-left': '', 'top-right': ''
+		, 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': ''
+		, 'left': '', 'left-mid': '', 'mid': '', 'mid-mid': ''
+		, 'right': '', 'right-mid': '', 'middle': '  '
+	},
+	expanded: {
+		'top': '', 'top-mid': '', 'top-left': '', 'top-right': ''
+		, 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': ''
+		, 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '──'
+		, 'right': '', 'right-mid': '', 'middle': '  '
+	},
+	original: {
+		'top': '═', 'top-mid': '╤', 'top-left': '╔', 'top-right': '╗'
+		, 'bottom': '═', 'bottom-mid': '╧', 'bottom-left': '╚', 'bottom-right': '╝'
+		, 'left': '║', 'left-mid': '╟', 'mid': '─', 'mid-mid': '┼'
+		, 'right': '║', 'right-mid': '╢', 'middle': '│'
+	}
+}
 let DEFAULT_COLORS = {
 		log: ['reset'],
 		success: ['bold'],
@@ -32,6 +54,7 @@ let DEFAULT_COLORS = {
 		debug: ['dim'],
 		propertyKey: ['dim'],
 		propertyValue: ['reset'],
+		tableHeader: ['dim'],
 		spinnerSpinning: ['dim'],
 		spinnerDone: ['dim']
 	},
@@ -198,6 +221,50 @@ class Response {
 			this[LOG](formatter(), this.colors[colorSpinning], this.indentation, true);
 
 		return destroySpinner;
+	}
+
+	table (columnNames, content, expanded) {
+		const columnSizes = [],
+			totalWidth = Math.min(primitives.getTerminalWidth() - 2 * this.indentation.length, 800),
+			columnSeperator = '  ';
+
+		content = content.map(row => row.map((cell, colIndex) => {
+			if(!columnSizes[colIndex])
+				columnSizes[colIndex] = 0;
+
+			if(cell.length > columnSizes[colIndex])
+				columnSizes[colIndex] = cell.length;
+
+			return cell.trim();
+		}));
+
+		const totalContentAvailableWidth = totalWidth - (columnNames.length) * columnSeperator.length;
+		const totalContentNativeWidth = columnSizes.reduce((total, size) => total + size, 0);
+
+		const contentRelativeSizes = totalContentNativeWidth <= totalContentAvailableWidth
+			? columnSizes.map(size => size)
+			: columnSizes.map((size, i) => Math.ceil(totalContentAvailableWidth * (size/totalContentNativeWidth)));
+
+		let table = new Table({
+			head: columnNames || [],
+			colWidths: contentRelativeSizes,
+			chars: !expanded ? tableChars.compact : tableChars.expanded,
+			style: {
+				'padding-left': 0,
+				'padding-right': 0,
+				compact: !expanded,
+				head: this.colors.tableHeader || [],
+				border: this.colors.debug || []
+			}
+		});
+
+		content.forEach(cont => table.push(cont.map((c, i) => {
+			return c.length > contentRelativeSizes[i]
+				? primitives.wrap(c, contentRelativeSizes[i])
+				: c
+		})));
+
+		console.log(table.toString().split(os.EOL).map(line => this.indentation + line).join(os.EOL));
 	}
 }
 
