@@ -225,7 +225,7 @@ class Response {
 
 	table (columnNames, content, expanded) {
 		const columnSizes = [],
-			totalWidth = Math.min(primitives.getTerminalWidth() - 2 * this.indentation.length, 800),
+			totalWidth = Math.min(primitives.getTerminalWidth() - 2 * this.indentation.length, 800) || 800,
 			columnSeperator = '  ';
 
 		content = content.map(row => row.map((cell, colIndex) => {
