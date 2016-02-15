@@ -8,7 +8,8 @@ let SpeakSoftly = require('./SoftSpoken'),
 			spinnerDone: ['bold', 'white']
 		},
 		{
-			spinnerInterval: 100
+			spinnerInterval: 50,
+			spinnerFactory: require('./extras').dotSpinner
 		}
 	);
 
@@ -34,4 +35,14 @@ softSpoken.properties([
 	['Non-unique key', 'Value 2']
 ]);
 
-setTimeout(softSpoken.spinner('This is a spinner').bind(softSpoken), 1000);
+softSpoken.table(
+	'One,Two,Three'.split(','),
+	[
+		[0, 'Twee', 'Drie'],
+		[1, null, 'Drie'],
+		[2, 'Twee'],
+		[3, { whut: true }, ['D', 'r', 'i', 'e']
+	]
+]);
+
+setTimeout(softSpoken.spinner('Spinnermesome'), 1000);

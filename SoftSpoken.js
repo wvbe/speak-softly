@@ -1,75 +1,31 @@
 'use strict';
 
-const os = require('os');
-const util = require('util');
+const os = require('os'),
+	util = require('util'),
 
-const Table = require('cli-table');
+	Table = require('cli-table'),
 
-const primitives = require('./primitives');
+	primitives = require('./primitives'),
+	extras = require('./extras'),
 
-function dotSpinnerFactory (message) {
-	let l = (primitives.getTerminalWidth() - 2 * this.indentation.length - message.length),
-		i = 0;
-
-	return function () {
-		return message + new Array(++i % l).join('.');
-	}
-}
-
-function spriteSpinnerFactory (message) {
-	let chars = '▖▘▝▗'.split(''),
-		i = 0;
-
-	return function () {
-		return message + ' ' + chars[(++i - 1) % chars.length];
-	}
-}
-
-const tableChars = {
-	compact: {
-		'top': '', 'top-mid': '', 'top-left': '', 'top-right': ''
-		, 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': ''
-		, 'left': '', 'left-mid': '', 'mid': '', 'mid-mid': ''
-		, 'right': '', 'right-mid': '', 'middle': '  '
-	},
-	expanded: {
-		'top': '', 'top-mid': '', 'top-left': '', 'top-right': ''
-		, 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': ''
-		, 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '──'
-		, 'right': '', 'right-mid': '', 'middle': '  '
-	},
-	original: {
-		'top': '═', 'top-mid': '╤', 'top-left': '╔', 'top-right': '╗'
-		, 'bottom': '═', 'bottom-mid': '╧', 'bottom-left': '╚', 'bottom-right': '╝'
-		, 'left': '║', 'left-mid': '╟', 'mid': '─', 'mid-mid': '┼'
-		, 'right': '║', 'right-mid': '╢', 'middle': '│'
-	}
-}
-let DEFAULT_COLORS = {
-		log: ['reset'],
-		success: ['bold'],
-		caption: ['underline'],
-		notice: ['yellow'],
-		error: ['red'],
-		debug: ['dim'],
-		propertyKey: ['dim'],
-		propertyValue: ['reset'],
-		tableHeader: ['dim'],
-		spinnerSpinning: ['dim'],
-		spinnerDone: ['dim']
-	},
 	DEFAULT_CONFIG = {
 		indentation: '    ',
-		spinnerFactory: spriteSpinnerFactory,
+		tableCharacters: extras.expandedTable,
+		spinnerFactory: extras.spriteSpinner,
 		spinnerInterval: 200
-	};
+	},
 
-let LOG = Symbol(),
+	LOG = Symbol(),
 	DESTROYERS = Symbol();
 
 class Response {
+	/**
+	 *
+	 * @param {Object} [colors]
+	 * @param {Object} [config]
+	 */
 	constructor (colors, config) {
-		this.colors = Object.assign(DEFAULT_COLORS, colors);
+		this.colors = Object.assign({}, extras.defaultTheme, colors);
 
 		Object.keys(this.colors).forEach(name => {
 			if (!this.colors[name])
@@ -83,6 +39,13 @@ class Response {
 	}
 	
 	[LOG] (string, formattingOptions, indentation, skipLineBreak) {
+
+		if (this.needsClearing && typeof process.stdout.clearLine === 'function') {
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
+			this.needsClearing = false;
+		}
+
 		process.stdout.write(primitives.indentString(primitives.formatString(string, formattingOptions), indentation) + (skipLineBreak ? '' : os.EOL));
 	}
 
@@ -91,7 +54,7 @@ class Response {
 	 * @param data
 	 */
 	log (data) {
-		return this[LOG](data, this.colors.log, this.indentation);
+		this[LOG](data, this.colors.log, this.indentation);
 	}
 
 	/**
@@ -99,7 +62,7 @@ class Response {
 	 * @param data
 	 */
 	success (data) {
-		return this[LOG](data, this.colors.success, this.indentation);
+		this[LOG](data, this.colors.success, this.indentation);
 	}
 
 	/**
@@ -108,7 +71,7 @@ class Response {
 	 */
 	caption (data) {
 		console.log('');
-		return this[LOG](data, this.colors.caption,this.indentation);
+		this[LOG](data, this.colors.caption,this.indentation);
 	}
 
 	/**
@@ -116,7 +79,7 @@ class Response {
 	 * @param data
 	 */
 	notice (data) {
-		return this[LOG](data, this.colors.notice, this.indentation);
+		this[LOG](data, this.colors.notice, this.indentation);
 	}
 
 	/**
@@ -124,7 +87,7 @@ class Response {
 	 * @param data
 	 */
 	error (data) {
-		return this[LOG](data, this.colors.error, this.indentation);
+		this[LOG](data, this.colors.error, this.indentation);
 	}
 
 	/**
@@ -132,14 +95,14 @@ class Response {
 	 * @param data
 	 */
 	debug (data) {
-		return this[LOG]((data && typeof data === 'object')
+		this[LOG]((data && typeof data === 'object')
 			? util.inspect(data, {depth: 3, colors: false})
 			: data, this.colors.debug, this.indentation);
 	}
 
 	property (key, value, keySize, formattingName) {
 		keySize = keySize || 0;
-		let keyString = primitives.indentString(
+		const keyString = primitives.indentString(
 				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
 				this.indentation
 			),
@@ -179,37 +142,48 @@ class Response {
 		}
 	}
 
+	/**
+	 * Whenever you need a little peace & quiet in your life, use break()
+	 * @returns {*}
+	 */
 	break () {
-		return this[LOG]('', false, '');
+		this[LOG]('', false, '');
 	}
 
-	destroyAllSpinners (message) {
+	/**
+	 * Stop and remove any remaining spinners
+	 */
+	destroyAllSpinners () {
 		this[DESTROYERS].forEach(fn => fn());
 	}
 
-	spinner (message, colorSpinning, colorDone) {
-		colorSpinning = colorSpinning || 'spinnerSpinning';
-		colorDone = colorDone || 'spinnerDone';
-		let hasClearLine = typeof process.stdout.clearLine === 'function',
+	/**
+	 * Nice little ASCII animation that runs while the destroyer is not called.
+	 * @param message
+	 * @returns {function} The destroyer
+	 */
+	spinner (message) {
+		const hasClearLine = typeof process.stdout.clearLine === 'function',
 			startTime = new Date().getTime(),
-			formatter = this.spinnerFactory(message).bind(this),
+			formatter = this.spinnerFactory(this, message),
 			interval = hasClearLine
 				? setInterval(() => {
-					process.stdout.clearLine();
-					process.stdout.cursorTo(0);
+						process.stdout.clearLine();
+						process.stdout.cursorTo(0);
 
-					this[LOG](formatter(), this.colors[colorSpinning], this.indentation, true);
-				}, this.spinnerInterval)
+						this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+						this.needsClearing = true;
+					}, this.spinnerInterval)
 				: null,
 			destroySpinner = () => {
-				let ms = new Date().getTime() - startTime;
+				const ms = new Date().getTime() - startTime;
 
 				if (hasClearLine) {
 					process.stdout.clearLine();
 					process.stdout.cursorTo(0);
 				}
 
-				this[LOG](`${message} (${ms})`, this.colors[colorDone], this.indentation);
+				this[LOG](`${message} (${ms}ms)`, this.colors.spinnerDone, this.indentation);
 
 				clearInterval(interval);
 				this[DESTROYERS].splice(this[DESTROYERS].indexOf(destroySpinner), 1);
@@ -217,8 +191,10 @@ class Response {
 
 		this[DESTROYERS].push(destroySpinner);
 
-		if (hasClearLine)
-			this[LOG](formatter(), this.colors[colorSpinning], this.indentation, true);
+		if (hasClearLine) {
+			this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+			this.needsClearing = true;
+		}
 
 		return destroySpinner;
 	}
@@ -229,8 +205,9 @@ class Response {
 			columnSeperator = '  ';
 
 		content = content.map(row => row.map((cell, colIndex) => {
+			cell = cell + '';
 			if(!columnSizes[colIndex])
-				columnSizes[colIndex] = 0;
+				columnSizes[colIndex] = columnNames[colIndex].length;
 
 			if(cell.length > columnSizes[colIndex])
 				columnSizes[colIndex] = cell.length;
@@ -238,25 +215,23 @@ class Response {
 			return cell.trim();
 		}));
 
-		const totalContentAvailableWidth = totalWidth - (columnNames.length) * columnSeperator.length;
-		const totalContentNativeWidth = columnSizes.reduce((total, size) => total + size, 0);
-
-		const contentRelativeSizes = totalContentNativeWidth <= totalContentAvailableWidth
-			? columnSizes.map(size => size)
-			: columnSizes.map((size, i) => Math.ceil(totalContentAvailableWidth * (size/totalContentNativeWidth)));
-
-		let table = new Table({
-			head: columnNames || [],
-			colWidths: contentRelativeSizes,
-			chars: !expanded ? tableChars.compact : tableChars.expanded,
-			style: {
-				'padding-left': 0,
-				'padding-right': 0,
-				compact: !expanded,
-				head: this.colors.tableHeader || [],
-				border: this.colors.debug || []
-			}
-		});
+		const totalContentAvailableWidth = totalWidth - (columnNames.length) * columnSeperator.length,
+			totalContentNativeWidth = columnSizes.reduce((total, size) => total + size, 0),
+			contentRelativeSizes = totalContentNativeWidth <= totalContentAvailableWidth
+				? columnSizes
+				: columnSizes.map((size, i) => Math.ceil(totalContentAvailableWidth * (size/totalContentNativeWidth))),
+			table = new Table({
+				head: columnNames || [],
+				colWidths: contentRelativeSizes,
+				chars: !expanded ? extras.compactTable : this.tableCharacters,
+				style: {
+					'padding-left': 0,
+					'padding-right': 0,
+					compact: !expanded,
+					head: this.colors.tableHeader || [],
+					border: this.colors.debug || []
+				}
+			});
 
 		content.forEach(cont => table.push(cont.map((c, i) => {
 			return c.length > contentRelativeSizes[i]
@@ -264,7 +239,9 @@ class Response {
 				: c
 		})));
 
-		console.log(table.toString().split(os.EOL).map(line => this.indentation + line).join(os.EOL));
+		table.toString().split(os.EOL).map(line => this.indentation + line).forEach(line => {
+			console.log(line);
+		});
 	}
 }
 

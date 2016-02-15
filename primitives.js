@@ -19,6 +19,7 @@ function indentString(string, indentation, screenWidth) {
 		})
 		.join(os.EOL);
 }
+
 function fillString (length, char) {
 	return (new Array(length).join(char || ' '));
 }
