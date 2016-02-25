@@ -14,8 +14,9 @@ const os = require('os'),
 		spinnerFactory: extras.spriteSpinner,
 		spinnerInterval: 200
 	},
-
+	
 	LOG = Symbol(),
+	WIDTH = Symbol(),
 	DESTROYERS = Symbol();
 
 class Response {
@@ -35,18 +36,27 @@ class Response {
 		});
 
 		Object.assign(this, DEFAULT_CONFIG, config);
+		this[WIDTH] = primitives.getTerminalWidth();
 		this[DESTROYERS] = [];
 	}
 	
 	[LOG] (string, formattingOptions, indentation, skipLineBreak) {
-
 		if (this.needsClearing && typeof process.stdout.clearLine === 'function') {
 			process.stdout.clearLine();
 			process.stdout.cursorTo(0);
 			this.needsClearing = false;
 		}
 
-		process.stdout.write(primitives.indentString(primitives.formatString(string, formattingOptions), indentation) + (skipLineBreak ? '' : os.EOL));
+		process.stdout.write(primitives.indentString(primitives.formatString(string, formattingOptions), indentation, this[WIDTH]) + (skipLineBreak ? '' : os.EOL));
+	}
+
+	setWrapping (width) {
+		if(width === true)
+			this[WIDTH] = primitives.getTerminalWidth();
+		else if(width)
+			this[WIDTH] = parseInt(width);
+		else
+			this[WIDTH] = Infinity;
 	}
 
 	/**
@@ -104,7 +114,8 @@ class Response {
 		keySize = keySize || 0;
 		const keyString = primitives.indentString(
 				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
-				this.indentation
+				this.indentation,
+				this[WIDTH]
 			),
 			seperatorString = '  ';
 
@@ -113,7 +124,7 @@ class Response {
 					? this.colors[formattingName]
 					: this.colors.propertyValue),
 				seperatorString,
-				primitives.getTerminalWidth() - 2 * this.indentation.length - seperatorString.length - keySize
+			this[WIDTH] - 2 * this.indentation.length - seperatorString.length - keySize
 			)
 			.split('\n')
 			.map((line, i, lines) => (i === 0
@@ -201,7 +212,7 @@ class Response {
 
 	table (columnNames, content, expanded) {
 		const columnSizes = [],
-			totalWidth = Math.min(primitives.getTerminalWidth() - 2 * this.indentation.length, 800) || 800,
+			totalWidth = Math.min(this[WIDTH] - 2 * this.indentation.length, 800),
 			columnSeperator = '  ';
 
 		content = content.map(row => row.map((cell, colIndex) => {
