@@ -12,11 +12,13 @@ function indentString(string, indentation, screenWidth) {
 
 	var lineWidth = screenWidth - 2 * indentation.length;
 
-	return wrapAnsi(string, lineWidth)
-		.split(os.EOL)
-		.map(function (line) {
-			return indentation + line;
-		})
+	return string.split(os.EOL)
+		.map(string => wrapAnsi(string, lineWidth)
+			.split(os.EOL)
+			.map(function (line) {
+				return indentation + line;
+			})
+			.join(os.EOL))
 		.join(os.EOL);
 }
 
