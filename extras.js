@@ -3,6 +3,7 @@
 const primitives = require('./primitives');
 
 module.exports = {
+	defaultWidth: 200,
 	defaultTheme: {
 		log: ['reset'],
 		success: ['bold'],

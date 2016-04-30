@@ -36,7 +36,7 @@ class Response {
 		});
 
 		Object.assign(this, DEFAULT_CONFIG, config);
-		this[WIDTH] = primitives.getTerminalWidth();
+		this[WIDTH] = primitives.getTerminalWidth() || this.defaultWidth;
 		this[DESTROYERS] = [];
 	}
 	
