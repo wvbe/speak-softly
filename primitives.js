@@ -2,6 +2,9 @@ var os = require('os'),
 	wrapAnsi = require('wrap-ansi'),
 	chalk = require('chalk');
 
+function wrap (str, width) {
+	return wrapAnsi(str, width, { hard: true });
+}
 
 function indentString(string, indentation, screenWidth) {
 	if(indentation === undefined)
@@ -13,7 +16,7 @@ function indentString(string, indentation, screenWidth) {
 	var lineWidth = screenWidth - 2 * indentation.length;
 
 	return string.split(os.EOL)
-		.map(string => wrapAnsi(string, lineWidth)
+		.map(string => wrap(string, lineWidth)
 			.split(os.EOL)
 			.map(function (line) {
 				return indentation + line;
@@ -43,7 +46,7 @@ function getTerminalWidth () {
 }
 
 module.exports = {
-	wrap: wrapAnsi,
+	wrap: wrap,
 	formatString: formatString,
 	indentString: indentString,
 	padString: padString,

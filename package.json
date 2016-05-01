@@ -17,6 +17,6 @@
     "chalk": "^1.1.1",
     "cli-table": "^0.3.1",
     "promise": "^7.0.4",
-    "wrap-ansi": "^0.2.0"
+    "wrap-ansi": "^2.0.0"
   }
 }
