@@ -12,6 +12,8 @@ module.exports = {
 		debug: ['dim'],
 		propertyKey: ['dim'],
 		propertyValue: ['reset'],
+		definitionKey: ['reset'],
+		definitionValue: ['dim'],
 		tableHeader: ['dim'],
 		spinnerSpinning: ['dim'],
 		spinnerDone: ['dim']

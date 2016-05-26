@@ -63,7 +63,7 @@ class Response {
 	 * A description of proceedings relevant to the task/whatever
 	 * @param data
 	 */
-	log (data) {
+	log (data, color) {
 		this[LOG](data, this.colors.log, this.indentation);
 	}
 
@@ -108,6 +108,21 @@ class Response {
 		this[LOG]((data && typeof data === 'object')
 			? util.inspect(data, {depth: 3, colors: false})
 			: data, this.colors.debug, this.indentation);
+	}
+
+	definition (key, value, formattingName) {
+		this[LOG](key, this.colors.definitionKey, this.indentation);
+
+		console.log(primitives.indentString(
+				primitives.formatString(value, formattingName
+					? this.colors[formattingName]
+					: this.colors.definitionValue),
+				this.indentation,
+				this[WIDTH] - 1 * this.indentation.length
+			)
+			.split('\n')
+			.map((line, i, lines) => this.indentation + line)
+			.join('\n'));
 	}
 
 	property (key, value, keySize, formattingName) {
