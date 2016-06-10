@@ -9,6 +9,7 @@ const os = require('os'),
 	extras = require('./extras'),
 
 	DEFAULT_CONFIG = {
+		defaultWidth: extras.defaultWidth,
 		indentation: '    ',
 		tableCharacters: extras.expandedTable,
 		spinnerFactory: extras.spriteSpinner,
