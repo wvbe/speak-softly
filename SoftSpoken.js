@@ -29,15 +29,15 @@ function getLeftIndentationString (indentation, indentationLevel) {
 	return str;
 }
 
-class Response {
+class SpeakSoftly {
 	/**
 	 *
 	 * @param {Object} [colors]
 	 * @param {Object} [config]
 	 */
 	constructor (colors, config) {
+		// Write the color config to instance, and convert values to arrays if they weren't already
 		this.colors = Object.assign({}, extras.defaultTheme, colors);
-
 		Object.keys(this.colors).forEach(name => {
 			if (!this.colors[name])
 				this.colors[name] = ['dim'];
@@ -45,14 +45,23 @@ class Response {
 				this.colors[name] = [this.colors[name]];
 		});
 
+		// Write all other config to instance
 		Object.assign(this, DEFAULT_CONFIG, config);
 
+		// If set to TRUE, the next log will overwrite the previous output
+		this.needsClearing = false;
+
+		// The number of indents the next log will have
 		this.indentationLevel = this.defaultIndentation;
+
+		// The maximum width of any line logged by SpeakSoftly
 		this[WIDTH] = primitives.getTerminalWidth() || this.defaultWidth;
+
+		// A list of interval destroyers
 		this[DESTROYERS] = [];
 	}
 
-	[LOG] (string, formattingOptions, indentation, skipLineBreak) {
+	[LOG] (string, formattingOptions, skipLineBreak) {
 		if (this.needsClearing && typeof process.stdout.clearLine === 'function') {
 			process.stdout.clearLine();
 			process.stdout.cursorTo(0);
@@ -62,8 +71,8 @@ class Response {
 
 		process.stdout.write(primitives.indentString(
 			primitives.formatString(string, formattingOptions),
-			getLeftIndentationString(indentation, this.indentationLevel),
-			indentation,
+			getLeftIndentationString(this.indentation, this.indentationLevel),
+			this.indentation,
 			this[WIDTH]) + (skipLineBreak ? '' : os.EOL));
 	}
 
@@ -88,7 +97,7 @@ class Response {
 	 * @param data
 	 */
 	log (data, color) {
-		this[LOG](data, this.colors.log, this.indentation);
+		this[LOG](data, this.colors.log);
 	}
 
 	/**
@@ -96,7 +105,7 @@ class Response {
 	 * @param data
 	 */
 	success (data) {
-		this[LOG](data, this.colors.success, this.indentation);
+		this[LOG](data, this.colors.success);
 	}
 
 	/**
@@ -105,7 +114,7 @@ class Response {
 	 */
 	caption (data) {
 		console.log('');
-		this[LOG](data, this.colors.caption,this.indentation);
+		this[LOG](data, this.colors.caption);
 	}
 
 	/**
@@ -113,7 +122,7 @@ class Response {
 	 * @param data
 	 */
 	notice (data) {
-		this[LOG](data, this.colors.notice, this.indentation);
+		this[LOG](data, this.colors.notice);
 	}
 
 	/**
@@ -121,7 +130,7 @@ class Response {
 	 * @param data
 	 */
 	error (data) {
-		this[LOG](data, this.colors.error, this.indentation);
+		this[LOG](data, this.colors.error);
 	}
 
 	/**
@@ -131,11 +140,11 @@ class Response {
 	debug (data) {
 		this[LOG]((data && typeof data === 'object')
 			? util.inspect(data, {depth: 3, colors: false})
-			: data, this.colors.debug, this.indentation);
+			: data, this.colors.debug);
 	}
 
 	definition (key, value, formattingName) {
-		this[LOG](key, this.colors.definitionKey, this.indentation);
+		this[LOG](key, this.colors.definitionKey);
 
 		console.log(primitives.indentString(
 				primitives.formatString(value, formattingName
@@ -199,7 +208,7 @@ class Response {
 	 * @returns {*}
 	 */
 	break () {
-		this[LOG]('', false, '');
+		this[LOG]('', false);
 	}
 
 	/**
@@ -223,7 +232,7 @@ class Response {
 						process.stdout.clearLine();
 						process.stdout.cursorTo(0);
 
-						this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+						this[LOG](formatter(), this.colors.spinnerSpinning, true);
 						this.needsClearing = true;
 					}, this.spinnerInterval)
 				: null,
@@ -235,7 +244,7 @@ class Response {
 					process.stdout.cursorTo(0);
 				}
 
-				this[LOG](`${message} (${ms}ms)`, this.colors.spinnerDone, this.indentation);
+				this[LOG](`${message} (${ms}ms)`, this.colors.spinnerDone);
 
 				clearInterval(interval);
 				this[DESTROYERS].splice(this[DESTROYERS].indexOf(destroySpinner), 1);
@@ -244,7 +253,7 @@ class Response {
 		this[DESTROYERS].push(destroySpinner);
 
 		if (hasClearLine) {
-			this[LOG](formatter(), this.colors.spinnerSpinning, this.indentation, true);
+			this[LOG](formatter(), this.colors.spinnerSpinning, true);
 			this.needsClearing = true;
 		}
 
@@ -300,4 +309,4 @@ class Response {
 }
 
 
-module.exports = Response;
+module.exports = SpeakSoftly;
