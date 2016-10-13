@@ -11,14 +11,23 @@ const os = require('os'),
 	DEFAULT_CONFIG = {
 		defaultWidth: extras.defaultWidth,
 		indentation: '    ',
+		defaultIndentation: 1,
 		tableCharacters: extras.expandedTable,
 		spinnerFactory: extras.spriteSpinner,
 		spinnerInterval: 200
 	},
-	
+
 	LOG = Symbol(),
 	WIDTH = Symbol(),
 	DESTROYERS = Symbol();
+
+function getLeftIndentationString (indentation, indentationLevel) {
+	var str = '';
+	for(var i = 0; i < indentationLevel; ++i) {
+		str += indentation;
+	}
+	return str;
+}
 
 class Response {
 	/**
@@ -37,10 +46,12 @@ class Response {
 		});
 
 		Object.assign(this, DEFAULT_CONFIG, config);
+
+		this.indentationLevel = this.defaultIndentation;
 		this[WIDTH] = primitives.getTerminalWidth() || this.defaultWidth;
 		this[DESTROYERS] = [];
 	}
-	
+
 	[LOG] (string, formattingOptions, indentation, skipLineBreak) {
 		if (this.needsClearing && typeof process.stdout.clearLine === 'function') {
 			process.stdout.clearLine();
@@ -48,7 +59,12 @@ class Response {
 			this.needsClearing = false;
 		}
 
-		process.stdout.write(primitives.indentString(primitives.formatString(string, formattingOptions), indentation, this[WIDTH]) + (skipLineBreak ? '' : os.EOL));
+
+		process.stdout.write(primitives.indentString(
+			primitives.formatString(string, formattingOptions),
+			getLeftIndentationString(indentation, this.indentationLevel),
+			indentation,
+			this[WIDTH]) + (skipLineBreak ? '' : os.EOL));
 	}
 
 	setWrapping (width) {
@@ -58,6 +74,13 @@ class Response {
 			this[WIDTH] = parseInt(width);
 		else
 			this[WIDTH] = Infinity;
+	}
+
+	indent () {
+		++this.indentationLevel;
+	}
+	outdent () {
+		this.indentationLevel = Math.max(this.defaultIndentation, this.indentationLevel - 1);
 	}
 
 	/**
@@ -119,8 +142,8 @@ class Response {
 					? this.colors[formattingName]
 					: this.colors.definitionValue),
 				this.indentation,
-				this[WIDTH] - 1 * this.indentation.length
-			)
+				this.indentation,
+				this[WIDTH] - 1 * this.indentation.length)
 			.split('\n')
 			.map((line, i, lines) => this.indentation + line)
 			.join('\n'));
@@ -130,22 +153,24 @@ class Response {
 		keySize = keySize || 0;
 		const keyString = primitives.indentString(
 				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
+				getLeftIndentationString(this.indentation, this.indentationLevel),
 				this.indentation,
 				this[WIDTH]
 			),
-			seperatorString = '  ';
+			seperatorString = ''; // used to pad the value of a property
 
 		console.log(primitives.indentString(
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
 					: this.colors.propertyValue),
 				seperatorString,
-			this[WIDTH] - 2 * this.indentation.length - seperatorString.length - keySize
+				seperatorString,
+				this[WIDTH] - (1 + this.indentationLevel) * this.indentation.length - seperatorString.length - keySize
 			)
 			.split('\n')
 			.map((line, i, lines) => (i === 0
 					? keyString
-					: primitives.fillString(keySize + this.indentation.length + 1)
+					: primitives.fillString(keySize + (this.indentationLevel + 1) * this.indentation.length + 1)
 				) + line)
 			.join('\n'));
 	}
@@ -228,7 +253,7 @@ class Response {
 
 	table (columnNames, content, expanded) {
 		const columnSizes = [],
-			totalWidth = Math.min(this[WIDTH] - 2 * this.indentation.length, 800),
+			totalWidth = Math.min(this[WIDTH] - (this.indentationLevel + 1) * this.indentation.length, 800),
 			columnSeperator = '  ';
 
 		content = content.map(row => row.map((cell, colIndex) => {
@@ -266,9 +291,11 @@ class Response {
 				: c
 		})));
 
-		table.toString().split(os.EOL).map(line => this.indentation + line).forEach(line => {
-			console.log(line);
-		});
+		table.toString()
+			.split(os.EOL)
+			.map(line => getLeftIndentationString(this.indentation, this.indentationLevel) + line).forEach(line => {
+				console.log(line);
+			});
 	}
 }
 

@@ -6,20 +6,23 @@ function wrap (str, width) {
 	return wrapAnsi(str, width, { hard: true });
 }
 
-function indentString(string, indentation, screenWidth) {
-	if(indentation === undefined)
-		indentation = '    ';
+function indentString(string, indentationLeft, indentationRight, screenWidth) {
+	if(indentationLeft === undefined)
+		indentationLeft = '    ';
+
+	if(indentationRight === undefined)
+		indentationRight = indentationLeft;
 
 	if(!screenWidth)
 		screenWidth = getTerminalWidth();
 
-	var lineWidth = screenWidth - 2 * indentation.length;
+	var lineWidth = screenWidth - indentationLeft.length - indentationRight.length;
 
 	return string.split(os.EOL)
 		.map(string => wrap(string, lineWidth)
 			.split(os.EOL)
 			.map(function (line) {
-				return indentation + line;
+				return indentationLeft + line + indentationRight;
 			})
 			.join(os.EOL))
 		.join(os.EOL);
