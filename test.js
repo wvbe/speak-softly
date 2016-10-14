@@ -1,7 +1,8 @@
 'use strict';
 
-let SpeakSoftly = require('./SoftSpoken'),
-	softSpoken = new SpeakSoftly(
+const SpeakSoftly = require('./SoftSpoken');
+
+const softSpoken = new SpeakSoftly(
 		{
 			notice: 'yellow',
 			error: ['white', 'bgRed'],
@@ -62,6 +63,8 @@ softSpoken.table(
 			'This is a whole nutha story! This is a whole nutha story! This is a whole nutha story! This is a whole nutha story! This is a whole nutha story!'
 		]
 	]);
-
+softSpoken.definition('derp', 'A word commonly said by wvbe');
+softSpoken.outdent();
 softSpoken.log('Outdent');
+softSpoken.definition('nerf', 'A word also commonly said by wvbe');
 setTimeout(softSpoken.spinner('Spinnermesome'), 1000);

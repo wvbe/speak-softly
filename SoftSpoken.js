@@ -1,29 +1,29 @@
 'use strict';
 
-const os = require('os'),
-	util = require('util'),
+const os = require('os');
+const util = require('util');
 
-	Table = require('cli-table'),
+const Table = require('cli-table');
 
-	primitives = require('./primitives'),
-	extras = require('./extras'),
+const primitives = require('./primitives');
+const extras = require('./extras');
 
-	DEFAULT_CONFIG = {
-		defaultWidth: extras.defaultWidth,
-		indentation: '    ',
-		defaultIndentation: 1,
-		tableCharacters: extras.expandedTable,
-		spinnerFactory: extras.spriteSpinner,
-		spinnerInterval: 200
-	},
+const DEFAULT_CONFIG = {
+	defaultWidth: extras.defaultWidth,
+	indentation: '    ',
+	defaultIndentation: 1,
+	tableCharacters: extras.expandedTable,
+	spinnerFactory: extras.spriteSpinner,
+	spinnerInterval: 200
+};
 
-	LOG = Symbol(),
-	WIDTH = Symbol(),
-	DESTROYERS = Symbol();
+const LOG = Symbol();
+const WIDTH = Symbol();
+const DESTROYERS = Symbol();
 
 function getLeftIndentationString (indentation, indentationLevel) {
-	var str = '';
-	for(var i = 0; i < indentationLevel; ++i) {
+	let str = '';
+	for(let i = 0; i < indentationLevel; ++i) {
 		str += indentation;
 	}
 	return str;
@@ -150,12 +150,9 @@ class SpeakSoftly {
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
 					: this.colors.definitionValue),
+				getLeftIndentationString(this.indentation, this.indentationLevel + 1),
 				this.indentation,
-				this.indentation,
-				this[WIDTH] - 1 * this.indentation.length)
-			.split('\n')
-			.map((line, i, lines) => this.indentation + line)
-			.join('\n'));
+				this[WIDTH]));
 	}
 
 	property (key, value, keySize, formattingName) {
@@ -302,7 +299,8 @@ class SpeakSoftly {
 
 		table.toString()
 			.split(os.EOL)
-			.map(line => getLeftIndentationString(this.indentation, this.indentationLevel) + line).forEach(line => {
+			.map(line => getLeftIndentationString(this.indentation, this.indentationLevel) + line)
+			.forEach(line => {
 				console.log(line);
 			});
 	}
