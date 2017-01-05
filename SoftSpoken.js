@@ -304,6 +304,23 @@ class SpeakSoftly {
 				console.log(line);
 			});
 	}
+
+	list (listItems, bulletCharacter) {
+		listItems.forEach((listItem, i) => {
+			this.listItem(listItem, bulletCharacter ? bulletCharacter : ((i + 1) + '.'));
+		});
+	}
+
+	listItem (value, bulletCharacter) {
+		console.log(
+			primitives.indentString(
+				primitives.formatString(bulletCharacter, this.colors.listItemBullet)
+				+ ' '
+				+ primitives.formatString(value, this.colors.listItemValue), this.indentation
+			)
+		);
+	}
+
 }
 
 

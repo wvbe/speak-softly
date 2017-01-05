@@ -17,7 +17,9 @@ module.exports = {
 		definitionValue: ['dim'],
 		tableHeader: ['dim'],
 		spinnerSpinning: ['dim'],
-		spinnerDone: ['dim']
+		spinnerDone: ['dim'],
+		listItemBullet: ['dim'],
+		listItemValue: ['reset']
 	},
 
 	compactTable: {

@@ -67,4 +67,14 @@ softSpoken.definition('derp', 'A word commonly said by wvbe');
 softSpoken.outdent();
 softSpoken.log('Outdent');
 softSpoken.definition('nerf', 'A word also commonly said by wvbe');
-setTimeout(softSpoken.spinner('Spinnermesome'), 1000);
+
+return new Promise(res => setTimeout(res, 1000))
+	.then(softSpoken.spinner('Spinnermesome'))
+	.then(() => {
+		softSpoken.list([
+			'One',
+			'Two',
+			'Three'
+		]);
+	});
+
