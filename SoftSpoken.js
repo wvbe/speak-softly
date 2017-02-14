@@ -14,7 +14,8 @@ const DEFAULT_CONFIG = {
 	defaultIndentation: 1,
 	tableCharacters: extras.expandedTable,
 	spinnerFactory: extras.spriteSpinner,
-	spinnerInterval: 200
+	spinnerInterval: 200,
+	stdout: process.stdout
 };
 
 const LOG = Symbol();
@@ -30,6 +31,7 @@ function getLeftIndentationString (indentation, indentationLevel) {
 }
 
 class SpeakSoftly {
+
 	/**
 	 *
 	 * @param {Object} [colors]
@@ -52,24 +54,24 @@ class SpeakSoftly {
 		this.needsClearing = false;
 
 		// The number of indents the next log will have
-		this.indentationLevel = this.defaultIndentation;
+		this.indentationLevel = this.config.defaultIndentation;
 
 		// The maximum width of any line logged by SpeakSoftly
-		this[WIDTH] = primitives.getTerminalWidth() || this.defaultWidth;
+		this[WIDTH] = primitives.getTerminalWidth() || this.config.defaultWidth;
 
 		// A list of interval destroyers
 		this[DESTROYERS] = [];
 	}
 
 	[LOG] (string, formattingOptions, skipLineBreak) {
-		if (this.needsClearing && typeof process.stdout.clearLine === 'function') {
-			process.stdout.clearLine();
-			process.stdout.cursorTo(0);
+		if (this.needsClearing && typeof this.config.stdout.clearLine === 'function') {
+			this.config.stdout.clearLine();
+			this.config.stdout.cursorTo(0);
 			this.needsClearing = false;
 		}
 
 
-		process.stdout.write(primitives.indentString(
+		this.config.stdout.write(primitives.indentString(
 			primitives.formatString(string, formattingOptions),
 			getLeftIndentationString(this.config.indentation, this.indentationLevel),
 			this.config.indentation,
@@ -113,7 +115,7 @@ class SpeakSoftly {
 	 * @param data
 	 */
 	caption (data) {
-		console.log('');
+		this.config.stdout.write(os.EOL);
 		this[LOG](data, this.colors.caption);
 	}
 
@@ -146,13 +148,13 @@ class SpeakSoftly {
 	definition (key, value, formattingName) {
 		this[LOG](key, this.colors.definitionKey);
 
-		console.log(primitives.indentString(
+		this.config.stdout.write(primitives.indentString(
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
 					: this.colors.definitionValue),
 				getLeftIndentationString(this.config.indentation, this.indentationLevel + 1),
 				this.config.indentation,
-				this[WIDTH]));
+				this[WIDTH]) + os.EOL);
 	}
 
 	property (key, value, keySize, formattingName) {
@@ -165,7 +167,7 @@ class SpeakSoftly {
 			),
 			seperatorString = ''; // used to pad the value of a property
 
-		console.log(primitives.indentString(
+		this.config.stdout.write(primitives.indentString(
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
 					: this.colors.propertyValue),
@@ -176,9 +178,9 @@ class SpeakSoftly {
 			.split('\n')
 			.map((line, i, lines) => (i === 0
 					? keyString
-					: primitives.fillString(keySize + (this.config.indentationLevel + 1) * this.indentation.length + 1)
+					: primitives.fillString(keySize + (this.indentationLevel + 1) * this.config.indentation.length + 1)
 				) + line)
-			.join('\n'));
+			.join('\n') + os.EOL);
 	}
 
 	properties (obj, formattingName) {
@@ -221,13 +223,13 @@ class SpeakSoftly {
 	 * @returns {function} The destroyer
 	 */
 	spinner (message) {
-		const hasClearLine = typeof process.stdout.clearLine === 'function',
+		const hasClearLine = typeof this.config.stdout.clearLine === 'function',
 			startTime = new Date().getTime(),
 			formatter = this.config.spinnerFactory(this, message),
 			interval = hasClearLine
 				? setInterval(() => {
-						process.stdout.clearLine();
-						process.stdout.cursorTo(0);
+						this.config.stdout.clearLine();
+						this.config.stdout.cursorTo(0);
 
 						this[LOG](formatter(), this.colors.spinnerSpinning, true);
 						this.needsClearing = true;
@@ -237,8 +239,8 @@ class SpeakSoftly {
 				const ms = new Date().getTime() - startTime;
 
 				if (hasClearLine) {
-					process.stdout.clearLine();
-					process.stdout.cursorTo(0);
+					this.config.stdout.clearLine();
+					this.config.stdout.cursorTo(0);
 				}
 
 				this[LOG](`${message} (${ms}ms)`, this.colors.spinnerDone);
@@ -301,7 +303,7 @@ class SpeakSoftly {
 			.split(os.EOL)
 			.map(line => getLeftIndentationString(this.config.indentation, this.indentationLevel) + line)
 			.forEach(line => {
-				console.log(line);
+				this.config.stdout.write(line + os.EOL);
 			});
 	}
 
@@ -312,13 +314,12 @@ class SpeakSoftly {
 	}
 
 	listItem (value, bulletCharacter) {
-		console.log(
+		this.config.stdout.write(
 			primitives.indentString(
 				primitives.formatString(bulletCharacter, this.colors.listItemBullet)
 				+ ' '
-				+ primitives.formatString(value, this.colors.listItemValue), this.indentation
-			)
-		);
+				+ primitives.formatString(value, this.colors.listItemValue), this.config.indentation
+			) + os.EOL);
 	}
 
 }

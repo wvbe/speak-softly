@@ -44,7 +44,7 @@ module.exports = {
 	},
 
 	dotSpinner: function dotSpinnerFactory (softSpoken, message) {
-		let l = (primitives.getTerminalWidth() - 2 * softSpoken.indentation.length - message.length),
+		let l = (primitives.getTerminalWidth() - 2 * softSpoken.config.indentation.length - message.length),
 			i = 0;
 
 		return function () {
