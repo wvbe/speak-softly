@@ -46,7 +46,7 @@ class SpeakSoftly {
 		});
 
 		// Write all other config to instance
-		Object.assign(this, DEFAULT_CONFIG, config);
+		this.config = Object.assign({}, DEFAULT_CONFIG, config);
 
 		// If set to TRUE, the next log will overwrite the previous output
 		this.needsClearing = false;
@@ -71,8 +71,8 @@ class SpeakSoftly {
 
 		process.stdout.write(primitives.indentString(
 			primitives.formatString(string, formattingOptions),
-			getLeftIndentationString(this.indentation, this.indentationLevel),
-			this.indentation,
+			getLeftIndentationString(this.config.indentation, this.indentationLevel),
+			this.config.indentation,
 			this[WIDTH]) + (skipLineBreak ? '' : os.EOL));
 	}
 
@@ -89,7 +89,7 @@ class SpeakSoftly {
 		++this.indentationLevel;
 	}
 	outdent () {
-		this.indentationLevel = Math.max(this.defaultIndentation, this.indentationLevel - 1);
+		this.indentationLevel = Math.max(this.config.defaultIndentation, this.indentationLevel - 1);
 	}
 
 	/**
@@ -150,8 +150,8 @@ class SpeakSoftly {
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
 					: this.colors.definitionValue),
-				getLeftIndentationString(this.indentation, this.indentationLevel + 1),
-				this.indentation,
+				getLeftIndentationString(this.config.indentation, this.indentationLevel + 1),
+				this.config.indentation,
 				this[WIDTH]));
 	}
 
@@ -159,8 +159,8 @@ class SpeakSoftly {
 		keySize = keySize || 0;
 		const keyString = primitives.indentString(
 				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
-				getLeftIndentationString(this.indentation, this.indentationLevel),
-				this.indentation,
+				getLeftIndentationString(this.config.indentation, this.indentationLevel),
+				this.config.indentation,
 				this[WIDTH]
 			),
 			seperatorString = ''; // used to pad the value of a property
@@ -171,12 +171,12 @@ class SpeakSoftly {
 					: this.colors.propertyValue),
 				seperatorString,
 				seperatorString,
-				this[WIDTH] - (1 + this.indentationLevel) * this.indentation.length - seperatorString.length - keySize
+				this[WIDTH] - (1 + this.indentationLevel) * this.config.indentation.length - seperatorString.length - keySize
 			)
 			.split('\n')
 			.map((line, i, lines) => (i === 0
 					? keyString
-					: primitives.fillString(keySize + (this.indentationLevel + 1) * this.indentation.length + 1)
+					: primitives.fillString(keySize + (this.config.indentationLevel + 1) * this.indentation.length + 1)
 				) + line)
 			.join('\n'));
 	}
@@ -223,7 +223,7 @@ class SpeakSoftly {
 	spinner (message) {
 		const hasClearLine = typeof process.stdout.clearLine === 'function',
 			startTime = new Date().getTime(),
-			formatter = this.spinnerFactory(this, message),
+			formatter = this.config.spinnerFactory(this, message),
 			interval = hasClearLine
 				? setInterval(() => {
 						process.stdout.clearLine();
@@ -231,7 +231,7 @@ class SpeakSoftly {
 
 						this[LOG](formatter(), this.colors.spinnerSpinning, true);
 						this.needsClearing = true;
-					}, this.spinnerInterval)
+					}, this.config.spinnerInterval)
 				: null,
 			destroySpinner = () => {
 				const ms = new Date().getTime() - startTime;
@@ -259,7 +259,7 @@ class SpeakSoftly {
 
 	table (columnNames, content, expanded) {
 		const columnSizes = [],
-			totalWidth = Math.min(this[WIDTH] - (this.indentationLevel + 1) * this.indentation.length, 800),
+			totalWidth = Math.min(this[WIDTH] - (this.indentationLevel + 1) * this.config.indentation.length, 800),
 			columnSeperator = '  ';
 
 		content = content.map(row => row.map((cell, colIndex) => {
@@ -281,7 +281,7 @@ class SpeakSoftly {
 			table = new Table({
 				head: columnNames || [],
 				colWidths: contentRelativeSizes,
-				chars: !expanded ? extras.compactTable : this.tableCharacters,
+				chars: !expanded ? extras.compactTable : this.config.tableCharacters,
 				style: {
 					'padding-left': 0,
 					'padding-right': 0,
@@ -299,7 +299,7 @@ class SpeakSoftly {
 
 		table.toString()
 			.split(os.EOL)
-			.map(line => getLeftIndentationString(this.indentation, this.indentationLevel) + line)
+			.map(line => getLeftIndentationString(this.config.indentation, this.indentationLevel) + line)
 			.forEach(line => {
 				console.log(line);
 			});
