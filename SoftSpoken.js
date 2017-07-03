@@ -300,7 +300,7 @@ class SpeakSoftly {
 		})));
 
 		table.toString()
-			.split(os.EOL)
+			.split('\n')
 			.map(line => getLeftIndentationString(this.config.indentation, this.indentationLevel) + line)
 			.forEach(line => {
 				this.config.stdout.write(line + os.EOL);
