@@ -269,8 +269,11 @@ class SpeakSoftly {
 			if(!columnSizes[colIndex])
 				columnSizes[colIndex] = columnNames[colIndex].length;
 
-			if(cell.length > columnSizes[colIndex])
-				columnSizes[colIndex] = cell.length;
+			let cellLength = cell.length;
+			if(cell.includes('\n'))
+				cellLength = cell.split('\n').reduce((a, b) => a.length > b.length ? a : b).length;
+			if(cellLength > columnSizes[colIndex])
+				columnSizes[colIndex] = cellLength;
 
 			return cell.trim();
 		}));
