@@ -271,7 +271,7 @@ class SpeakSoftly {
 
 			let cellLength = cell.length;
 			if(cell.includes('\n'))
-				cellLength = cell.split('\n').reduce((a, b) => a.length > b.length ? a : b).length;
+				cellLength = cell.split('\n').reduce((max, line) => Math.max(max, line.length), 0);
 			if(cellLength > columnSizes[colIndex])
 				columnSizes[colIndex] = cellLength;
 
