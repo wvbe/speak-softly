@@ -82,7 +82,7 @@ class SpeakSoftly {
 		if(width === true)
 			this[WIDTH] = primitives.getTerminalWidth();
 		else if(width)
-			this[WIDTH] = parseInt(width);
+			this[WIDTH] = parseInt(width, 10);
 		else
 			this[WIDTH] = Infinity;
 	}
@@ -98,7 +98,7 @@ class SpeakSoftly {
 	 * A description of proceedings relevant to the task/whatever
 	 * @param data
 	 */
-	log (data, color) {
+	log (data) {
 		this[LOG](data, this.colors.log);
 	}
 
@@ -120,7 +120,7 @@ class SpeakSoftly {
 	}
 
 	/**
-	 * Something that is probably of interest (but not neccessarily bad), if not important, for the user; exceptions, search results, urgent stuff
+	 * Something that is probably of interest (but not necessarily bad), if not important, for the user; exceptions, search results, urgent stuff
 	 * @param data
 	 */
 	notice (data) {
@@ -317,12 +317,11 @@ class SpeakSoftly {
 	}
 
 	listItem (value, bulletCharacter) {
-		this.config.stdout.write(
-			primitives.indentString(
-				primitives.formatString(bulletCharacter, this.colors.listItemBullet)
-				+ ' '
-				+ primitives.formatString(value, this.colors.listItemValue), this.config.indentation
-			) + os.EOL);
+		this[LOG](
+			primitives.formatString(bulletCharacter, this.colors.listItemBullet)
+			+ ' '
+			+ primitives.formatString(value, this.colors.listItemValue)
+		);
 	}
 
 }
