@@ -1,6 +1,6 @@
 {
   "name": "speak-softly",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A little something something to make readable console logging easier",
   "main": "SoftSpoken.js",
   "repository": {
