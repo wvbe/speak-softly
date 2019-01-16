@@ -68,8 +68,15 @@ softSpoken.outdent();
 softSpoken.log('Outdent');
 softSpoken.definition('nerf', 'A word also commonly said by wvbe');
 
+const destroySpinner = softSpoken.spinner('Spinnermesome');
 return new Promise(res => setTimeout(res, 1000))
-	.then(softSpoken.spinner('Spinnermesome'))
+	.then(() => {
+		softSpoken.notice('Interrupted spinner with a message');
+		return new Promise(res => setTimeout(res, 1000));
+	})
+	.then(() => {
+		destroySpinner();
+	})
 	.then(() => {
 		softSpoken.list([
 			'One',

@@ -1,5 +1,9 @@
 'use strict';
 
+const os = require('os');
+
+const stripAnsi = require('strip-ansi');
+
 const primitives = require('./primitives');
 
 module.exports = {
@@ -43,21 +47,99 @@ module.exports = {
 		, 'right': '║', 'right-mid': '╢', 'middle': '│'
 	},
 
-	dotSpinner: function dotSpinnerFactory (softSpoken, message) {
-		let l = (primitives.getTerminalWidth() - 2 * softSpoken.config.indentation.length - message.length),
-			i = 0;
+	dotSpinner: function dotSpinnerFactory (softSpoken, _message, formattedMessageWithoutAnsi, _formattedMessageWithAnsi) {
+		const configuredStdout = softSpoken.config.stdout,
+			lines = formattedMessageWithoutAnsi.split(os.EOL);
 
-		return function () {
-			return message + new Array(++i % l).join('.');
-		}
+		let lastLineLength = lines[lines.length - 1].length,
+			l = softSpoken.getWidth() - lastLineLength - softSpoken.config.indentation.length,
+			i = l + 1,
+			isOnNewLine = false;
+
+		return function (doneMessage, isCleared) {
+			if (doneMessage) {
+				configuredStdout.cursorTo(lastLineLength);
+				configuredStdout.clearLine(1);
+
+				if (doneMessage.length > l) {
+					// If the done message does not fit on the current line, output on a new line and indent properly.
+					configuredStdout.write(os.EOL);
+					configuredStdout.write(primitives.indentString(
+						primitives.formatString(doneMessage, softSpoken.colors.spinnerDone),
+						primitives.getLeftIndentationString(softSpoken.config.indentation, softSpoken.indentationLevel),
+						softSpoken.config.indentation,
+						softSpoken.getWidth()));
+				} else {
+					configuredStdout.write(primitives.formatString((isOnNewLine ? '' : ' ') + doneMessage, softSpoken.colors.spinnerDone));
+				}
+
+				return;
+			}
+
+			if (++i > l || isCleared) {
+				i = 0;
+
+				if (l < 2 || (isCleared && isOnNewLine)) {
+					// If the spinner does not fit on the current line, output on a new line and indent properly.
+					const indent = primitives.getLeftIndentationString(softSpoken.config.indentation, softSpoken.indentationLevel);
+					configuredStdout.write(os.EOL);
+					configuredStdout.write(indent);
+					isOnNewLine = true;
+					l = softSpoken.getWidth() - (softSpoken.config.indentation.length * (softSpoken.indentationLevel + 1));
+					lastLineLength = indent.length;
+				} else {
+					configuredStdout.cursorTo(lastLineLength);
+					configuredStdout.clearLine(1);
+				}
+			}
+
+			configuredStdout.write(primitives.formatString('.', softSpoken.colors.spinnerSpinning));
+		};
 	},
 
-	spriteSpinner: function spriteSpinnerFactory (softSpoken, message) {
-		let chars = '▖▘▝▗'.split(''),
-			i = 0;
+	spriteSpinner: function spriteSpinnerFactory (softSpoken, _message, formattedMessageWithoutAnsi, _formattedMessageWithAnsi) {
+		const chars = '▖▘▝▗'.split(''),
+			configuredStdout = softSpoken.config.stdout,
+			lines = formattedMessageWithoutAnsi.split(os.EOL);
 
-		return function () {
-			return message + ' ' + chars[(++i - 1) % chars.length];
+		let lastLineLength = lines[lines.length - 1].length,
+			l = softSpoken.getWidth() - lastLineLength - softSpoken.config.indentation.length,
+			i = 0,
+			isOnNewLine = false;
+
+		return function (doneMessage, isCleared) {
+			if (doneMessage) {
+				configuredStdout.cursorTo(lastLineLength);
+				configuredStdout.clearLine(1);
+
+				if (doneMessage.length > l) {
+					// If the done message does not fit on the current line, output on a new line and indent properly.
+					configuredStdout.write(os.EOL);
+					configuredStdout.write(primitives.indentString(
+						primitives.formatString(doneMessage, softSpoken.colors.spinnerDone),
+						primitives.getLeftIndentationString(softSpoken.config.indentation, softSpoken.indentationLevel),
+						softSpoken.config.indentation,
+						softSpoken.getWidth()));
+				} else {
+					configuredStdout.write(primitives.formatString((isOnNewLine ? '' : ' ') + doneMessage, softSpoken.colors.spinnerDone));
+				}
+
+				return;
+			}
+
+			if (l < 2 || (isCleared && isOnNewLine)) {
+				// If the spinner does not fit on the current line, output on a new line and indent properly.
+				const indent = primitives.getLeftIndentationString(softSpoken.config.indentation, softSpoken.indentationLevel);
+				configuredStdout.write(os.EOL);
+				configuredStdout.write(indent);
+				isOnNewLine = true;
+				l = softSpoken.getWidth() - (softSpoken.config.indentation.length * (softSpoken.indentationLevel + 1));
+				lastLineLength = indent.length;
+			}
+
+			configuredStdout.cursorTo(lastLineLength);
+			configuredStdout.clearLine(1);
+			configuredStdout.write((isOnNewLine ? '' : ' ') + primitives.formatString(chars[(++i - 1) % chars.length], softSpoken.colors.spinnerSpinning));
 		}
 	}
 };
