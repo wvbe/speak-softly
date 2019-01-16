@@ -4,6 +4,7 @@ const os = require('os');
 const util = require('util');
 
 const Table = require('cli-table');
+const stripAnsi = require('strip-ansi');
 
 const primitives = require('./primitives');
 const extras = require('./extras');
@@ -21,14 +22,6 @@ const DEFAULT_CONFIG = {
 const LOG = Symbol();
 const WIDTH = Symbol();
 const DESTROYERS = Symbol();
-
-function getLeftIndentationString (indentation, indentationLevel) {
-	let str = '';
-	for(let i = 0; i < indentationLevel; ++i) {
-		str += indentation;
-	}
-	return str;
-}
 
 class SpeakSoftly {
 
@@ -70,12 +63,15 @@ class SpeakSoftly {
 			this.needsClearing = false;
 		}
 
-
 		this.config.stdout.write(primitives.indentString(
 			primitives.formatString(string, formattingOptions),
-			getLeftIndentationString(this.config.indentation, this.indentationLevel),
+			primitives.getLeftIndentationString(this.config.indentation, this.indentationLevel),
 			this.config.indentation,
 			this[WIDTH]) + (skipLineBreak ? '' : os.EOL));
+	}
+
+	getWidth () {
+		return this[WIDTH];
 	}
 
 	setWrapping (width) {
@@ -152,7 +148,7 @@ class SpeakSoftly {
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
 					: this.colors.definitionValue),
-				getLeftIndentationString(this.config.indentation, this.indentationLevel + 1),
+				primitives.getLeftIndentationString(this.config.indentation, this.indentationLevel + 1),
 				this.config.indentation,
 				this[WIDTH]) + os.EOL);
 	}
@@ -161,7 +157,7 @@ class SpeakSoftly {
 		keySize = keySize || 0;
 		const keyString = primitives.indentString(
 				primitives.formatString(primitives.padString(key, keySize), this.colors.propertyKey),
-				getLeftIndentationString(this.config.indentation, this.indentationLevel),
+				primitives.getLeftIndentationString(this.config.indentation, this.indentationLevel),
 				this.config.indentation,
 				this[WIDTH]
 			),
@@ -223,38 +219,56 @@ class SpeakSoftly {
 	 * @returns {function} The destroyer
 	 */
 	spinner (message) {
-		const hasClearLine = typeof this.config.stdout.clearLine === 'function',
-			startTime = new Date().getTime(),
-			formatter = this.config.spinnerFactory(this, message),
-			interval = hasClearLine
-				? setInterval(() => {
-						this.config.stdout.clearLine();
-						this.config.stdout.cursorTo(0);
+		const startTime = new Date().getTime(),
+			hasClearLine = typeof this.config.stdout.clearLine === 'function';
 
-						this[LOG](formatter(), this.colors.spinnerSpinning, true);
-						this.needsClearing = true;
-					}, this.config.spinnerInterval)
-				: null,
-			destroySpinner = () => {
+		if (!hasClearLine) {
+			// When there is no support for clearing the line and moving the cursor, do nothing and
+			// just output the message and duration when done.
+			const destroySpinner = () => {
 				const ms = new Date().getTime() - startTime;
-
-				if (hasClearLine) {
-					this.config.stdout.clearLine();
-					this.config.stdout.cursorTo(0);
-				}
-
 				this[LOG](`${message} (${ms}ms)`, this.colors.spinnerDone);
 
-				clearInterval(interval);
 				this[DESTROYERS].splice(this[DESTROYERS].indexOf(destroySpinner), 1);
 			};
 
+			this[DESTROYERS].push(destroySpinner);
+
+			return destroySpinner;
+		}
+
+		const formattedMessageWithAnsi = primitives.indentString(
+				primitives.formatString(message, this.colors.spinnerSpinning),
+				primitives.getLeftIndentationString(this.config.indentation, this.indentationLevel),
+				this.config.indentation,
+				this.getWidth())
+				.replace(new RegExp(`${this.config.indentation}$`), ''),
+			formattedMessageWithoutAnsi = stripAnsi(formattedMessageWithAnsi),
+			drawSpinner = this.config.spinnerFactory(this, message, formattedMessageWithoutAnsi, formattedMessageWithAnsi),
+
+			interval = setInterval(() => {
+					if (!this.needsClearing) {
+						// Redraw the message when a log message is outputted in between the spinner output
+						this.config.stdout.write(formattedMessageWithAnsi);
+					}
+					drawSpinner(null, !this.needsClearing);
+					this.needsClearing = true;
+				}, this.config.spinnerInterval),
+			destroySpinner = () => {
+					const ms = new Date().getTime() - startTime;
+
+					drawSpinner(`(${ms}ms)`, !this.needsClearing);
+					this.config.stdout.write(os.EOL);
+
+					clearInterval(interval);
+					this[DESTROYERS].splice(this[DESTROYERS].indexOf(destroySpinner), 1);
+				};
+
 		this[DESTROYERS].push(destroySpinner);
 
-		if (hasClearLine) {
-			this[LOG](formatter(), this.colors.spinnerSpinning, true);
-			this.needsClearing = true;
-		}
+		this.config.stdout.write(formattedMessageWithAnsi);
+		this.needsClearing = true;
+		drawSpinner();
 
 		return destroySpinner;
 	}
@@ -304,7 +318,7 @@ class SpeakSoftly {
 
 		table.toString()
 			.split('\n')
-			.map(line => getLeftIndentationString(this.config.indentation, this.indentationLevel) + line)
+			.map(line => primitives.getLeftIndentationString(this.config.indentation, this.indentationLevel) + line)
 			.forEach(line => {
 				this.config.stdout.write(line + os.EOL);
 			});

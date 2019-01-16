@@ -45,6 +45,14 @@ function formatString(string, formatting) {
 	return formatting.reduce((c, formattingOption) => c[formattingOption], chalk)(string);
 }
 
+function getLeftIndentationString (indentation, indentationLevel) {
+	let str = '';
+	for(let i = 0; i < indentationLevel; ++i) {
+		str += indentation;
+	}
+	return str;
+}
+
 function getTerminalWidth () {
 	return process.stdout.columns;
 }
@@ -55,5 +63,6 @@ module.exports = {
 	indentString: indentString,
 	padString: padString,
 	fillString: fillString,
+	getLeftIndentationString: getLeftIndentationString,
 	getTerminalWidth: getTerminalWidth
 };
