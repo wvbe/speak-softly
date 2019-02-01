@@ -56,12 +56,16 @@ class SpeakSoftly {
 		this[DESTROYERS] = [];
 	}
 
-	[LOG] (string, formattingOptions, skipLineBreak) {
+	clearIfNeeded () {
 		if (this.needsClearing && typeof this.config.stdout.clearLine === 'function') {
 			this.config.stdout.clearLine();
 			this.config.stdout.cursorTo(0);
 			this.needsClearing = false;
 		}
+	}
+
+	[LOG] (string, formattingOptions, skipLineBreak) {
+		this.clearIfNeeded();
 
 		this.config.stdout.write(primitives.indentString(
 			primitives.formatString(string, formattingOptions),
@@ -111,6 +115,7 @@ class SpeakSoftly {
 	 * @param data
 	 */
 	caption (data) {
+		this.clearIfNeeded();
 		this.config.stdout.write(os.EOL);
 		this[LOG](data, this.colors.caption);
 	}
@@ -163,6 +168,7 @@ class SpeakSoftly {
 			),
 			seperatorString = ''; // used to pad the value of a property
 
+		this.clearIfNeeded();
 		this.config.stdout.write(primitives.indentString(
 				primitives.formatString(value, formattingName
 					? this.colors[formattingName]
@@ -257,6 +263,11 @@ class SpeakSoftly {
 			destroySpinner = () => {
 					const ms = new Date().getTime() - startTime;
 
+					if (!this.needsClearing) {
+						// Redraw the message when a log message is outputted in between the spinner output
+						this.config.stdout.write(formattedMessageWithAnsi);
+					}
+
 					drawSpinner(`(${ms}ms)`, !this.needsClearing);
 					this.config.stdout.write(os.EOL);
 
@@ -316,6 +327,7 @@ class SpeakSoftly {
 				: c
 		})));
 
+		this.clearIfNeeded();
 		table.toString()
 			.split('\n')
 			.map(line => primitives.getLeftIndentationString(this.config.indentation, this.indentationLevel) + line)
